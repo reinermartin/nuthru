@@ -5,13 +5,19 @@ use std::cmp;
 
 #[cfg(test)]
 mod tests {
-	use super::gcd;
+    use super::*;
 
-    #[test]
-    fn test1_gcd() {
-    	assert_eq!(gcd(945, 165), 15);
-    	assert_eq!(gcd(945, -165), -15);
-    }
+    #[test] fn test1a() { assert_eq!(gcd(945, 165), 15); }
+    #[test] fn test1b() { assert_eq!(gcd(945, -165), -15); }
+    
+    #[test] fn test2a() { assert_eq!(power_mod(2, 1000, 331), 31); }
+    #[test] fn test2b() { assert_eq!(power_mod(200, 10000, 541), 80); }
+    #[test] fn test2c() { assert_eq!(power_mod(12345, 165, 331), 330); }
+
+    #[test] fn test3a() { assert_eq!(legendre_symbol(12345, 331), -1); }
+
+    #[test] fn test4a() { assert_eq!(gcd(45261354, 45680756), 2); }
+    #[test] fn test4b() { assert_eq!(gcd(4512261354, 45680127564), 6); }
 }
 
 
@@ -22,11 +28,11 @@ pub fn modulo(n: i64, m: i64) -> i64 {
 }
 
 /// Computes powers modulo m
-pub fn power_mod(b: i64, e: i64, m: i64) -> i64 {
-    if e < 0 { unimplemented!() }
+pub fn power_mod(b: i64, exp: i64, m: i64) -> i64 {
+    if exp < 0 { unimplemented!() }
     let mut bm = b % m;
     let mut res = 1;
-    let mut e = e;
+    let mut e = exp;
     while e > 0 {
         if e & 1 != 0 { res = (res * bm) % m }
         bm = (bm * bm) % m;
@@ -43,22 +49,24 @@ pub fn gcd(a: i64, b: i64) -> i64
 
 /// The integer square root
 pub fn int_sqrt(n: i64) -> Option<i64> {
-	let t = (n as f64).sqrt() as i64;
-	if t*t == n { return Some(t) }
-	if (t+1)*(t+1) == n { return Some(t+1) }
+    let t = (n as f64).sqrt() as i64;
+    if t*t == n { return Some(t) }
+    if (t+1)*(t+1) == n { return Some(t+1) }
     None
 }
 
 
-/// Legendre symbol, returns 1, 0, or -1 mod p
+/// Legendre symbol, a multiplicative function with 1, 0, or -1 mod p. Spcifically, its value on a (nonzero) quadratic residue mod p is 1 and on a non-quadratic residue (non-residue) is −1. Its value on zero is 0.
+/// See https://en.wikipedia.org/wiki/Legendre_symbol.
 pub fn legendre_symbol(a: i64, p: i64) -> i64 {
-    power_mod(a, (p-1)/2, p)
+    let res = power_mod(a, (p-1)/2, p);
+    if res == p-1 { -1 } else { res }
 }
 
 
 /// The Tonelli–Shanks algorithm finds solutions to x^2 = n mod p, where p is an odd prime.
 // We are following the notation in https://en.wikipedia.org/wiki/Tonelli–Shanks_algorithm (WP)
-pub fn ts(n: i64, p: i64) -> (i64, i64, bool) {
+pub fn tonelli_shanks(n: i64, p: i64) -> (i64, i64, bool) {
 
     if legendre_symbol(n, p) != 1 { return (0, 0, false) }
 
@@ -79,7 +87,7 @@ pub fn ts(n: i64, p: i64) -> (i64, i64, bool) {
 
     // WP step 2, select z, assign c
     let mut z = 2;
-    while legendre_symbol(z, p) != p-1 { z += 1 }
+    while legendre_symbol(z, p) != -1 { z += 1 }
     let mut c = power_mod(z, q, p);
 
     // WP step 3, assign R, t, M
@@ -114,13 +122,13 @@ pub fn ts(n: i64, p: i64) -> (i64, i64, bool) {
     }
 }
 
-/// Finds integer solution to x^2 + y^2 = p
+/// Finds integer solution to x^2 + y^2 = p. See https://en.wikipedia.org/wiki/Cornacchia's_algorithm.
 pub fn cornacchia(p: i64) -> (i64, i64) {
     if p == 1 { return (1, 0)}
     if p == 2 { return (1, 1)}
     if p % 4 != 1 { panic!(""); }
 
-    let res = ts(p-1, p);
+    let res = tonelli_shanks(p-1, p);
     let mut a = p;
     let mut b = cmp::max(res.0, res.1);
     let l = (p as f64).sqrt() as i64;
