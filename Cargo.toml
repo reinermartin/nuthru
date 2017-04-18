@@ -1,0 +1,6 @@
+[package]
+name = "nuthru"
+version = "0.1.0"
+authors = ["Reiner Martin"]
+
+[dependencies]
